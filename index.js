@@ -1,20 +1,132 @@
-'use strict'
+'use strict';
+// Check RCPT TO domain is in etcd host_list
+
+// This plugin permits relaying clients to send if
+// the message is destined to or originating from a local domain.
+//
+// The mail hook always checks the MAIL FROM address and when detected, sets
+// connection.transaction.notes.local_sender=true. During RCPT TO, if relaying
+// is enabled and the sending domain is local, the receipt is OK.
+
+const { Etcd3 } = require('../haraka-necessary-helper-plugins/etcd3');
+const client = new Etcd3();
 
 exports.register = function () {
-  this.load_host-list-check-etcd_ini()
+    const plugin = this;
+    
+    plugin.load_host_list();
+
+    this.register_hook('rcpt', 'rcpt');
+    this.register_hook('mail', 'mail');
 }
 
-exports.load_host-list-check-etcd_ini = function () {
-  const plugin = this
+exports.rcpt = function (next, connection, params) {
+    const plugin = this;
+    const txn = connection.transaction;
+    if (!txn) return;
 
-  plugin.cfg = plugin.config.get('host-list-check-etcd.ini', {
-    booleans: [
-      '+enabled',               // plugin.cfg.main.enabled=true
-      '-disabled',              // plugin.cfg.main.disabled=false
-      '+feature_section.yes'    // plugin.cfg.feature_section.yes=true
-    ]
-  },
-  function () {
-    plugin.load_example_ini()
-  })
+    const rcpt = params[0];
+
+    // Check for RCPT TO without an @ first - ignore those here
+    if (!rcpt.host) {
+        txn.results.add(plugin, {fail: 'rcpt!domain'});
+        return next();
+    }
+
+    connection.logdebug(plugin, `Checking if ${rcpt} host is in host_list`);
+
+    const domain = rcpt.host.toLowerCase();
+
+    if (plugin.in_host_list(domain)) {
+        txn.results.add(plugin, {pass: 'rcpt_to'});
+        return next(OK);
+    }
+
+    // in this case, a client with relaying privileges is sending FROM a local
+    // domain. For them, any RCPT address is accepted.
+    if (connection.relaying && txn.notes.local_sender) {
+        txn.results.add(plugin, {pass: 'relaying local_sender'});
+        return next(OK);
+    }
+
+    // the MAIL FROM domain is not local and neither is the RCPT TO
+    // Another RCPT plugin may yet vouch for this recipient.
+    txn.results.add(plugin, {msg: 'rcpt!local'});
+    return next();
+}
+
+
+exports.load_host_list = function () {
+  const plugin = this;
+
+  var lowered_list = {};
+  plugin.host_list = lowered_list;
+
+  (async () => {
+    const raw_list = await client.get('config_host_list').string();
+    const list = raw_list.split(',');
+    
+    for (const i in list) {
+      lowered_list[list[i].trim().toLowerCase()] = true;
+    }
+
+    plugin.host_list = lowered_list;
+  })();
+
+  client.watch()
+    .key('config_host_list')
+    .create()
+    .then(watcher => {
+      watcher
+        .on('disconnected', () => console.log('disconnected...'))
+        .on('connected', () => console.log('successfully reconnected!'))
+        .on('put', res => {
+          lowered_list = {};
+          const list = res.value.toString().split(',');
+          for (const i in list) {
+            lowered_list[list[i].trim().toLowerCase()] = true;
+          }
+          plugin.host_list = lowered_list;
+          console.log("Host list is updated!");
+        });
+    });
+
+}
+
+exports.in_host_list = function (domain) {
+  const plugin = this;
+  plugin.logdebug(`checking ${domain} in host_list`);
+  if (plugin.host_list[domain]) {
+      return true;
+  }
+  return false;
+}
+
+exports.mail = function (next, connection, params) {
+  const plugin = this;
+  const txn = connection.transaction;
+  if (!txn) { return; }
+
+  const email = params[0].address();
+  if (!email) {
+      txn.results.add(plugin, {skip: 'mail_from.null', emit: true});
+      return next();
+  }
+
+  const domain = params[0].host.toLowerCase();
+
+  const anti_spoof = plugin.config.get('host_list.anti_spoof') || false;
+
+  if (plugin.in_host_list(domain)) {
+      if (anti_spoof && !connection.relaying) {
+          txn.results.add(plugin, {fail: 'mail_from.anti_spoof'});
+          return next(DENY, `Mail from domain '${domain}' is not allowed from your host`);
+      }
+      txn.results.add(plugin, {pass: 'mail_from'});
+      txn.notes.local_sender = true;
+      return next();
+  }
+
+  txn.results.add(plugin, {msg: 'mail_from!local'});
+  return next();
 }

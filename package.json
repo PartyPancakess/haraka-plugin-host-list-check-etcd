@@ -1,7 +1,7 @@
 {
   "name": "haraka-plugin-host-list-check-etcd",
   "version": "1.0.0",
-  "description": "Haraka plugin that frobnicates email connections",
+  "description": "Haraka plugin that checks host list from etcd",
   "main": "index.js",
   "scripts": {
     "lint": "npx eslint *.js test/*.js",
@@ -12,19 +12,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haraka/haraka-plugin-host-list-check-etcd.git"
+    "url": "git+https://github.com/PartyPancakess/haraka-plugin-host-list-check-etcd.git"
   },
   "keywords": [
     "haraka",
     "plugin",
     "host-list-check-etcd"
   ],
-  "author": "Welcome Member <happy-haraka-hacker@example.com>",
+  "author": "Bilge Onaycı <bilgehalilonayci@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/haraka/haraka-plugin-host-list-check-etcd/issues"
+    "url": "https://github.com/PartyPancakess/haraka-plugin-host-list-check-etcd/issues"
   },
-  "homepage": "https://github.com/haraka/haraka-plugin-host-list-check-etcd#readme",
+  "homepage": "https://github.com/PartyPancakess/haraka-plugin-host-list-check-etcd#readme",
   "devDependencies": {
     "eslint": "*",
     "eslint-plugin-haraka": "*",
