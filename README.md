@@ -1,6 +1,7 @@
 [![Unix Build Status][ci-img]][ci-url]
 [![Windows Build Status][ci-win-img]][ci-win-url]
 [![Code Climate][clim-img]][clim-url]
+[![NPM][npm-img]][npm-url]
 
 # haraka-plugin-host-list-check-etcd
 
@@ -25,3 +26,4 @@ etcdctl put config_host_list "korumail.tk, test.com, example.com"
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-host-list-check-etcd/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-host-list-check-etcd
 [npm-img]: https://nodei.co/npm/haraka-plugin-host-list-check-etcd.png
+[npm-url]: https://www.npmjs.com/package/haraka-plugin-host-list-check-etcd
