@@ -66,8 +66,8 @@ exports.load_host_list = function () {
   var lowered_list = {};
   plugin.host_list = lowered_list;
 
-  (async () => {
-    const raw_list = await client.get('config_host_list').string();
+  client.get('config_host_list').string()
+  .then(raw_list => {
     const list = raw_list.split(',');
     
     for (const i in list) {
@@ -75,7 +75,7 @@ exports.load_host_list = function () {
     }
 
     plugin.host_list = lowered_list;
-  })();
+  });
 
   client.watch()
     .key('config_host_list')
