@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-host-list-check-etcd",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Haraka plugin that checks host list from etcd",
   "main": "index.js",
   "scripts": {

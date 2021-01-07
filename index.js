@@ -9,7 +9,9 @@
 // is enabled and the sending domain is local, the receipt is OK.
 
 const { Etcd3 } = require('../haraka-necessary-helper-plugins/etcd3');
-const client = new Etcd3();
+
+const etcdSourceAddress = process.env.ETCD_ADDR || '127.0.0.1:2379';
+const client = new Etcd3({hosts:etcdSourceAddress});
 
 exports.register = function () {
     const plugin = this;
@@ -19,6 +21,47 @@ exports.register = function () {
     this.register_hook('rcpt', 'rcpt');
     this.register_hook('mail', 'mail');
 }
+
+exports.load_host_list = function () {
+  const plugin = this;
+
+  var lowered_list = {};
+  plugin.host_list = lowered_list;
+
+  client.get('config_host_list').string()
+  .then(raw_list => {
+    if (raw_list) {
+      const list = raw_list.split(',');
+      
+      for (const i in list) {
+        lowered_list[list[i].trim().toLowerCase()] = true;
+      }
+
+      plugin.host_list = lowered_list;
+    }
+    else console.log("Something went wrong while reading config_host_list from Etcd");
+  });
+
+  client.watch()
+    .key('config_host_list')
+    .create()
+    .then(watcher => {
+      watcher
+        .on('disconnected', () => console.log('disconnected...'))
+        .on('connected', () => console.log('successfully reconnected!'))
+        .on('put', res => {
+          lowered_list = {};
+          const list = res.value.toString().split(',');
+          for (const i in list) {
+            lowered_list[list[i].trim().toLowerCase()] = true;
+          }
+          plugin.host_list = lowered_list;
+          console.log("Host list is updated!");
+        });
+    });
+
+}
+
 
 exports.rcpt = function (next, connection, params) {
     const plugin = this;
@@ -57,44 +100,6 @@ exports.rcpt = function (next, connection, params) {
     // Another RCPT plugin may yet vouch for this recipient.
     txn.results.add(plugin, {msg: 'rcpt!local'});
     return next();
-}
-
-
-exports.load_host_list = function () {
-  const plugin = this;
-
-  var lowered_list = {};
-  plugin.host_list = lowered_list;
-
-  client.get('config_host_list').string()
-  .then(raw_list => {
-    const list = raw_list.split(',');
-    
-    for (const i in list) {
-      lowered_list[list[i].trim().toLowerCase()] = true;
-    }
-
-    plugin.host_list = lowered_list;
-  });
-
-  client.watch()
-    .key('config_host_list')
-    .create()
-    .then(watcher => {
-      watcher
-        .on('disconnected', () => console.log('disconnected...'))
-        .on('connected', () => console.log('successfully reconnected!'))
-        .on('put', res => {
-          lowered_list = {};
-          const list = res.value.toString().split(',');
-          for (const i in list) {
-            lowered_list[list[i].trim().toLowerCase()] = true;
-          }
-          plugin.host_list = lowered_list;
-          console.log("Host list is updated!");
-        });
-    });
-
 }
 
 exports.in_host_list = function (domain) {
