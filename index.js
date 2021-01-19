@@ -84,9 +84,7 @@ exports.rcpt = function (next, connection, params) {
 
     if (plugin.in_host_list(domain)) {
         txn.results.add(plugin, {pass: 'rcpt_to'});
-        if(connection.notes.rcptOriginal) 
-          return next(OK, `recipient ${connection.notes.rcptOriginal} OK`);
-        return next(OK);
+        return next(OK, `recipient ${params[0].original} OK`);
     }
 
     // in this case, a client with relaying privileges is sending FROM a local
@@ -130,9 +128,7 @@ exports.mail = function (next, connection, params) {
   if (plugin.in_host_list(domain)) {
       if (anti_spoof && !connection.relaying) {
           txn.results.add(plugin, {fail: 'mail_from.anti_spoof'});
-          if(connection.notes.rcptOriginal) 
-            return next(DENY, `Mail from domain '${connection.notes.rcptOriginal.host.toLowerCase()}' is not allowed from your host`);
-          return next(DENY, `Mail from domain '${domain}' is not allowed from your host`);
+          return next(DENY, `Mail from domain '${params[0].host.toLowerCase()}' is not allowed from your host`);
       }
       txn.results.add(plugin, {pass: 'mail_from'});
       txn.notes.local_sender = true;
