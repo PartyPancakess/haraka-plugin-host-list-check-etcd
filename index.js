@@ -97,9 +97,9 @@ exports.rcpt = function (next, connection, params) {
     }
 
     // the MAIL FROM domain is not local and neither is the RCPT TO
-    // Another RCPT plugin may yet vouch for this recipient.
+    // Since this plugin must be the last rcpt_to plugin running on the plugins list, deny.
     txn.results.add(plugin, {msg: 'rcpt!local'});
-    return next();
+    return next(DENY, "Cannot deliver mail for this domain.");
 }
 
 exports.in_host_list = function (domain) {
