@@ -12,7 +12,7 @@ For more information, please check the original plugin(host_list_regex is not in
 
 ## Example etcd Configuration
 ```
-etcdctl put config_host_list "korumail.tk, test.com, example.com"
+etcdctl put config/mta/host_list "korumail.tk, test.com, example.com"
 ```
 
 
