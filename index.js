@@ -28,7 +28,7 @@ exports.load_host_list = function () {
   var lowered_list = {};
   plugin.host_list = lowered_list;
 
-  client.get('config/mta/host_list').string()
+  client.get('config/domains/host_list').string()
   .then(raw_list => {
     if (raw_list) {
       const list = raw_list.split(',');
@@ -39,11 +39,11 @@ exports.load_host_list = function () {
 
       plugin.host_list = lowered_list;
     }
-    else console.log("Something went wrong while reading config/mta/host_list from Etcd");
+    else console.log("Something went wrong while reading config/domains/host_list from Etcd");
   });
 
   client.watch()
-    .key('config/mta/host_list')
+    .key('config/domains/host_list')
     .create()
     .then(watcher => {
       watcher
