@@ -64,6 +64,7 @@ exports.load_host_list = function () {
 
 
 exports.rcpt = function (next, connection, params) {
+  if (!connection.relaying) { // incoming
     const plugin = this;
     const txn = connection.transaction;
     if (!txn) return;
@@ -98,6 +99,8 @@ exports.rcpt = function (next, connection, params) {
     // Since this plugin must be the last rcpt_to plugin running on the plugins list, deny.
     txn.results.add(plugin, {msg: 'rcpt!local'});
     return next(DENY, "Cannot deliver mail for this domain.");
+  }
+  return next();
 }
 
 exports.in_host_list = function (domain) {
